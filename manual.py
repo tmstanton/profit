@@ -14,7 +14,7 @@ import sys
 
 # -=-=-=- Fitting Methods -=-=-=-
 
-def DoubleGaussianFit(wl:object, flux:object, errs:object, wl1:float, wl2:float, z:float, zerr=0.1) -> tpl[dict, bool]:
+def DoubleGaussianFit(wl:list, flux:list, errs:list, wl1:float, wl2:float, z:float, zerr=0.1) -> tpl[dict, bool]:
     
     # take in parameter guesses (visual)
     a1_guess = utils.UserInput('Amplitude (L)') #float(input('Width Guess: '))
@@ -24,7 +24,7 @@ def DoubleGaussianFit(wl:object, flux:object, errs:object, wl1:float, wl2:float,
     if profit.options['open']: utils.ClosePlot()
 
     # define log likelihood and prior transform functions
-    def logl_double(u):
+    def logl_double(u: tuple) -> float:
         
         # unpack parameters
         log_amp1, log_amp2, sig, rs = u
@@ -38,7 +38,7 @@ def DoubleGaussianFit(wl:object, flux:object, errs:object, wl1:float, wl2:float,
         model = utils.DoubleGaussian(x=wl, amp1=10**log_amp1, xc1=c1, amp2=10**log_amp2, xc2=c2, sig=sig)
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
-    def ptform_double(p):
+    def ptform_double(p:tuple) -> tuple:
         
         # unpack values
         plog_amp1, plog_amp2, psig, pz = p
@@ -89,7 +89,7 @@ def DoubleGaussianFit(wl:object, flux:object, errs:object, wl1:float, wl2:float,
     # check to see if happy
     return utils.ValidatePlot(params)
 
-def GaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
+def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
 
     # take in parameter guesses (visual)
     amp_guess = utils.UserInput('Amplitude') #float(input('Amplitude Guess: '))
@@ -98,7 +98,7 @@ def GaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:fl
     if profit.options['open']: utils.ClosePlot()
 
     # define log likelihood and prior transform functions
-    def logl_single(u):
+    def logl_single(u:tuple) -> float:
         
         # extract parameters
         log_amp, sig, rs = u
@@ -108,7 +108,7 @@ def GaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:fl
         model = utils.Gaussian(x=wl, amp=10**log_amp, xc=cwl*(1. + rs), sig=sig)
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
-    def ptform_single(p): 
+    def ptform_single(p:tuple) -> tuple: 
 
         # unpack prior parameters
         plog_amp, psig, pz = p
@@ -149,34 +149,13 @@ def GaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:fl
         fluxes[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
         fwhms[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[1] 
 
-    """
-    # generate distributions in these parameters
-    genkeys = ['flux', 'fwhm']
-    flux_fwhm = [fluxes, fwhms]
-    #for gp, genparam in enumerate(genkeys):
-    #    extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
-    #   params[genparam] = extracted_values
-
-    print('Long-Winded')
-    fluxl, fluxm, fluxh = utils._quantile(fluxes, [0.16, 0.50, 0.84], weights=None)
-    flux_minus, flux_plus = fluxm - fluxl, fluxh - fluxm
-    params['flux'] = (fluxm, flux_minus, flux_plus)
-
-    fwhml, fwhmm, fwhmh = utils._quantile(fwhms, [0.16, 0.50, 0.84], weights=None)
-    fwhm_minus, fwhm_plus = fwhmm - fwhml, fwhmh - fwhmm
-    params['fwhm'] = (fwhmm, fwhm_minus, fwhm_plus)
-
-    print(params['flux'])
-    print(params['fwhm'])
-
-    """
     params['flux'] = utils.ExtractUnweightedParams(fluxes)
     params['fwhm'] = utils.ExtractUnweightedParams(fwhms)
     
     # check to see if happy
     return utils.ValidatePlot(params)
 
-def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
+def LorentzianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
 
     # take in parameter guesses (visual)
     amp_guess = float(input('Amplitude Guess: '))
@@ -185,7 +164,7 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     if profit.options['open']: utils.ClosePlot()
 
     # define log likelihood and prior transform functions
-    def logl_lor(u):
+    def logl_lor(u:tuple) -> float:
         
         # extract parameters
         log_amp, gma, rs = u
@@ -195,7 +174,7 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
         model = utils.Lorentzian(x=wl, amp=10**log_amp, gamma=gma, xc = cwl*(1. + rs))
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
-    def ptform_lor(p): 
+    def ptform_lor(p:tuple) -> float: 
 
         # unpack prior parameters
         plog_amp, pgamma, pz = p
@@ -243,7 +222,7 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     # check to see if happy
     return utils.ValidatePlot(params)
 
-def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
+def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
     
     # take in parameter guesses (visual) (for narrow peak? and maybe width for wide peak? (e.g. max to set upper limit?))
     amp_guess = float(input('Amplitude Guess: '))
@@ -261,7 +240,7 @@ def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, 
     log_amp_b_lims = [0, 0.5 * log_amp_guess]
 
     # define log likelihood and prior transform functions
-    def logl_stacked(u:tuple) -> tuple:
+    def logl_stacked(u:tuple) -> float:
         
         # extract parameters
         log_amp_n, log_amp_b, vel_n, vel_b, rs = u
