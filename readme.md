@@ -1,4 +1,3 @@
-Description:
+Description: manual and automated spectral line fitting code - supporting single/double/broad-narrow dual gaussians and lorentzian profiles.
 
-Acknowledgement: Manual code fitting and general formatting heavily basen on and adapted from Fergus Cullen's (link to git) MLFIT package.
-                 This would not be possible without his code!
+Acknowledgement: dynesty bayesian nested sampling package, based on / adapted from scripts by fcullen.
