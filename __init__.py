@@ -23,6 +23,8 @@ def set_fit_options(options:dict) -> None:
     options['H[γ]']           = [4340, 'H_Gamma']
     options['O[III]λ4363']    = [4363, 'O[III]_4363']
     options['O[II]λλ3727,29'] = [3727, 3729, 'O[II]_3727,29']
+    options['O[III]λ4960'] = [4960, 'O[III]_4960']
+    options['He[II]λ4686'] = [4686, 'He[II]_4686']
 
     # plotting mode for automation
     options['fit_mode'] = None
