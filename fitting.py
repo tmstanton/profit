@@ -8,7 +8,7 @@ import astropy.modeling as apm
 
 # -=-=-=- Fitting methods for different Lines -=-=-=-
 
-def Fit(name:str, specpath:str, outpath:str, redshift:float, mode:str='manual') -> None:
+def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mode:str='manual') -> None:
     
     valid_types = {
         '1':'single',
@@ -116,34 +116,34 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, mode:str='manual') 
             cen = profit.options['line_wl'][0]
             if mode == 'manual':
                 params, accepted = manual.GaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   cwl=cen, z=redshift, zerr=0.05)
+                                                   cwl=cen, z=redshift, zerr=zerr)
             elif mode == 'auto': # TODO: check this is up to date
                 params, accepted = auto.GaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   cwl=cen, z=redshift, zerr=0.05)
+                                                   cwl=cen, z=redshift, zerr=zerr)
         if fit_type == 'double':
             cen = profit.options['line_wl']
             if mode == 'manual': 
                 params, accepted = manual.DoubleGaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   wl1=cen[0], wl2=cen[1], z=redshift, zerr=0.05)
+                                                   wl1=cen[0], wl2=cen[1], z=redshift, zerr=zerr)
             elif mode == 'auto': # TODO: check this is up to date
                 params, accepted = auto.DoubleGaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   wl1=cen[0], wl2=cen[1], z=redshift, zerr=0.05)
+                                                   wl1=cen[0], wl2=cen[1], z=redshift, zerr=zerr)
         if fit_type == 'lorentzian':
             cen = profit.options['line_wl'][0]
             if mode == 'manual':
                 params, accepted = manual.LorentzianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   cwl=cen, z=redshift, zerr=0.05)
+                                                   cwl=cen, z=redshift, zerr=zerr)
             elif mode == 'auto': # TODO: check this is up to date
                 params, accepted = auto.LorentzianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                   cwl=cen, z=redshift, zerr=0.05)
+                                                   cwl=cen, z=redshift, zerr=zerr)
         if fit_type == 'stacked':
             cen = profit.options['line_wl'][0]
             if mode == 'manual': 
                 params, accepted = manual.StackedGaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                    cwl=cen, z=redshift, zerr=0.05)
+                                                    cwl=cen, z=redshift, zerr=zerr)
             elif mode == 'auto': # TODO: check this is up to date
                 params, accepted = auto.StackedGaussianFit(wl=wl_fit, flux=flux_fit, errs=errs_fit,
-                                                    cwl=cen, z=redshift, zerr=0.05)  
+                                                    cwl=cen, z=redshift, zerr=zerr)  
 
     # create final dictionary
     fit_params = {}

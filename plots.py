@@ -85,7 +85,7 @@ def InitialPlot(wl_fit:list, flux_fit:list, errs_fit:list, approx_wl:float, fit_
         factor = -1
     else:
         factor = 1
-    ax.set_ylim(factor * 1.1 * np.min(flux_fit), 1.5 * np.max(flux_fit))
+    #ax.set_ylim(factor * 1.1 * np.min(flux_fit), 1.5 * np.max(flux_fit))
     plt.show(block=False)
 
 def CornerPlot(results:object, mode:str) -> None:
@@ -243,7 +243,7 @@ def BestFitPlot(wl:object, fluxes:object, errors:object, params:dict, cen:object
         factor = -1
     else:
         factor = 1
-    ax.set_ylim(factor * 1.1 * np.min(fluxes), 1.5 * np.max(fluxes))
+    #ax.set_ylim(factor * 1.1 * np.min(fluxes), 1.5 * np.max(fluxes))
     plt.show()
     if profit.options['save_plots']:
         plt.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_window_{mode[0]}.png')
