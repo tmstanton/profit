@@ -3,12 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 import profit
 from profit import utils, manual, auto, plots
+from typing import Callable as func
 import sys
 import astropy.modeling as apm
 
 # -=-=-=- Fitting methods for different Lines -=-=-=-
 
-def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mode:str='manual') -> None:
+def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mode:str='manual', readmethod:func = utils.kmos1D_n) -> None:
     
     valid_types = {
         '1':'single',
@@ -21,7 +22,7 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
         fit_type = profit.options['fit_mode']
 
     # read in data
-    wavelengths, fluxes, errors = utils.kmos1D_n(name, specpath) #utils.kmos1D(name, specpath)
+    wavelengths, fluxes, errors = readmethod(name, specpath) #utils.kmos1D(name, specpath)
 
     # calculate approximate location of the line
     approx_wl = np.mean(profit.options['line_wl']) * (1. + redshift)
@@ -30,7 +31,7 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
     # mask out all but relevant region
     mask = (wavelengths >= approx_wl - 75.) & (wavelengths <= approx_wl + 75.)
     wl_fit, flux_fit, errs_fit = wavelengths[mask], fluxes[mask], errors[mask]
-
+    print(wl_fit, flux_fit, errs_fit)
     # set initial loop parameters
     accepted = False
     run_continuum = True

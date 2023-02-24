@@ -46,6 +46,17 @@ def UserInput(parameter:str) -> float:
 
 # -=-=-=- Data Loading / Saving Methods -=-=-=-
 
+def FastPP(name:str, path:str) -> tpl[object, object, object]:
+
+    # get fluxes
+    fhdu = fits.open(f'{path}/{name}.fits')
+    fluxes = fhdu[1].data
+    errors = fhdu[2].data
+    wavelengths = fhdu[3].data
+
+    return wavelengths, fluxes, errors
+
+
 def kmos1D(name:str, path:str) -> tpl[object, object, object]:
 
     # get name
