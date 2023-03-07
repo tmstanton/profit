@@ -21,7 +21,7 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
     
     # select maxmimum flux within the window
     amp_lims = [0, np.log10(np.max(flux))]
-    sig_lims = [0, 12]
+    sig_lims = [0, 20]
     rst_lims = [z-zerr, z+zerr]
 
     if profit.options['open']: utils.ClosePlot()
@@ -116,9 +116,9 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
 
         # unpack prior parameters
         plog_amp, pgamma, pz = p
-        log_amp = amp_lims[0]   + plog_amp * (amp_lims[1] - amp_lims[0])
+        log_amp = amp_lims[0]   + plog_amp * (amp_lims[1]   - amp_lims[0])
         gam     = gamma_lims[0] + pgamma   * (gamma_lims[1] - gamma_lims[0])
-        red     = rst_lims[0]   + pz       * (rst_lims[1] - rst_lims[0])
+        red     = rst_lims[0]   + pz       * (rst_lims[1]   - rst_lims[0])
 
         return log_amp, gam, red 
 
@@ -143,15 +143,12 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     # plot corner plot
     plots.CornerPlot(results=res, mode='lorentzian')
 
-    """
-    # will look at this if it works?
-
     # use samples_equal to get fluxes under gaussians, and fwhm 
     fluxes, fwhms = np.empty(samples_equal.size), np.empty(samples_equal.size)
 
     for s, samp in enumerate(samples_equal):
-        fluxes[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
-        fwhms[s]  = utils.FWHM(samp[1]) 
+        fluxes[s] = utils.FluxUnderLorentzian(amp=np.power(10,samp[0]), sig=samp[1])
+        fwhms[s]  = 2 * samp[1] # FWHM is 2 * gamma
 
     # generate distributions in these parameters
     genkeys = ['flux', 'fwhm']
@@ -159,7 +156,6 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     for gp, genparam in enumerate(genkeys):
         extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genkeys[gp]] = extracted_values
-    """
 
     # check to see if happy
     return utils.ValidatePlot(params)
