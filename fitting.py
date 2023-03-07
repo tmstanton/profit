@@ -31,7 +31,7 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
     # mask out all but relevant region
     mask = (wavelengths >= approx_wl - 75.) & (wavelengths <= approx_wl + 75.)
     wl_fit, flux_fit, errs_fit = wavelengths[mask], fluxes[mask], errors[mask]
-    print(wl_fit, flux_fit, errs_fit)
+
     # set initial loop parameters
     accepted = False
     run_continuum = True
