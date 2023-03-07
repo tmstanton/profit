@@ -211,10 +211,11 @@ def LorentzianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=
 
     for s, samp in enumerate(samples_equal):
         fluxes[s] = utils.FluxUnderLorentzian(amp=np.power(10,samp[0]), gam=samp[1])
+        fwhms[s] = 2 * samp[1]
 
     # generate distributions in these parameters
-    genkeys = ['flux']
-    flux_fwhm = [fluxes]
+    genkeys = ['flux', 'fwhm']
+    flux_fwhm = [fluxes, fwhms]
     for gp, genparam in enumerate(genkeys):
         extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genparam] = extracted_values
@@ -226,13 +227,13 @@ def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:f
     
     # take in parameter guesses (visual) (for narrow peak? and maybe width for wide peak? (e.g. max to set upper limit?))
     amp_guess = float(input('Amplitude Guess: '))
-    sig_guess = float(input('Width Guess: '))
+    #sig_guess = float(input('Width Guess: '))
 
     if profit.options['open']: utils.ClosePlot()
 
     # convert to velocity and set velocity limit
     vel_n_lims = [0, profit.options['vel_barrier']]
-    vel_b_lims = [profit.options['vel_barrier'], utils.Sigma_To_Vel(sig_guess)]
+    vel_b_lims = [profit.options['vel_barrier'], 5 * profit.options['vel_barrier']]
 
     # amplitude limits
     log_amp_guess = np.log10(amp_guess)
