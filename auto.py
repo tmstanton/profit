@@ -143,7 +143,7 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     # plot corner plot
     plots.CornerPlot(results=res, mode='lorentzian')
 
-    # use samples_equal to get fluxes under gaussians, and fwhm 
+    # use samples_equal to get fluxes under gaussians, and fwhm TODO: verify these work?
     fluxes, fwhms = np.empty(samples_equal.size), np.empty(samples_equal.size)
 
     for s, samp in enumerate(samples_equal):
@@ -162,10 +162,11 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
 
 def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
 
-    # automated guesses
-    amp_lims   = [0, np.log10(np.max(flux))]
+    # automated guesses [Motivated by Anshu et al 2023]
+    n_amp_lims = [0.5 * np.log10(np.max(flux)), np.log10(np.max(flux))]
+    b_amp_lims = [0., 0.5 * np.log10(np.max(flux))]
     vel_n_lims = [0, profit.options['vel_barrier']]
-    vel_b_lims = [profit.options['vel_barrier'], 2*profit.options['vel_barrier']]
+    vel_b_lims = [profit.options['vel_barrier'], 5 * profit.options['vel_barrier']]
     rst_lims   = [z-zerr, z+zerr]
 
     if profit.options['open']: utils.ClosePlot()
@@ -191,8 +192,8 @@ def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, 
         plog_amp_n, plog_amp_b, pvel_n, pvel_b, pz = p
 
         # use stats.norm to define the parameter estimates around the guesses
-        log_amp_n = amp_lims[0] + plog_amp_n * (amp_lims[1] - amp_lims[0])
-        log_amp_b = amp_lims[0] + plog_amp_b * (amp_lims[1] - amp_lims[0]) / 2
+        log_amp_n = n_amp_lims[0] + plog_amp_n * (n_amp_lims[1] - n_amp_lims[0])
+        log_amp_b = b_amp_lims[0] + plog_amp_b * (b_amp_lims[1] - b_amp_lims[0]) 
 
         # generate limits? (0 to barrier value, barrier value to maximum possible width from guess value?)
         vel_n = vel_n_lims[0] + pvel_n * (vel_n_lims[1] - vel_n_lims[0])
