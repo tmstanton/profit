@@ -31,7 +31,7 @@ def set_fit_options(options:dict) -> None:
     options['open'] = False
 
     # stacked gaussian profile velocities
-    options['vel_barrier'] = 100 # km s-1
+    options['vel_barrier'] = 200 # km s-1
 
 # initialise
 options = {}
