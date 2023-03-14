@@ -121,6 +121,9 @@ def PklLoad(filepath:str) -> dict:
     
 # -=-=-=- Data Interpretation Methods -=-=-=-
 
+def Unpack(lims:list, par:float) -> object:
+    return lims[0] + (par * (lims[1] - lims[0]))
+
 def FluxUnderGaussian(amp:float, sig:float) -> float:
     return amp * sig * np.sqrt(2 * np.pi)
 
