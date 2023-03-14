@@ -12,6 +12,7 @@ from dynesty import utils as dyfunc
 from typing import Tuple as tpl
 import sys
 
+
 # -=-=-=- Fitting Methods -=-=-=-
 
 def DoubleGaussianFit(wl:list, flux:list, errs:list, wl1:float, wl2:float, z:float, zerr=0.1) -> tpl[dict, bool]:
@@ -81,10 +82,11 @@ def DoubleGaussianFit(wl:list, flux:list, errs:list, wl1:float, wl2:float, z:flo
         fluxes2[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[1]), sig=samp[2])
         fwhms[s]   = 2. * np.sqrt(2. * np.log(2.)) * samp[2] 
 
-    # generate distributions in these parameters
-    params['flux_1'] = utils.ExtractUnweightedParams(fluxes1)
-    params['flux_2'] = utils.ExtractUnweightedParams(fluxes2)
-    params['fwhm']   = utils.ExtractUnweightedParams(fwhms)
+    # extract derived parameters
+    genkeys = ['flux_1', 'flux_2', 'fwhm']
+    flux_fwhm = [fluxes1, fluxes2, fwhms]
+    for key, array in zip(genkeys, flux_fwhm):
+        params[key] = utils.ExtractParamValues(array, weights=None)
 
     # check to see if happy
     return utils.ValidatePlot(params)
@@ -148,10 +150,12 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
     for s, samp in enumerate(samples_equal):
         fluxes[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
         fwhms[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[1] 
-
-    params['flux'] = utils.ExtractUnweightedParams(fluxes)
-    params['fwhm'] = utils.ExtractUnweightedParams(fwhms)
     
+    genkeys = ['flux', 'fwhm']
+    flux_fwhm = [fluxes, fwhms]
+    for key, array in zip(genkeys, flux_fwhm):
+        params[key] = utils.ExtractParamValues(array, weights=None)
+
     # check to see if happy
     return utils.ValidatePlot(params)
 
@@ -216,10 +220,13 @@ def LorentzianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=
     # generate distributions in these parameters
     genkeys = ['flux', 'fwhm']
     flux_fwhm = [fluxes, fwhms]
+    for key, array in zip(genkeys, flux_fwhm):
+        params[key] = utils.ExtractParamValues(array, weights=None)
+    """
     for gp, genparam in enumerate(genkeys):
         extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genparam] = extracted_values
-
+    """
     # check to see if happy
     return utils.ValidatePlot(params)
 
@@ -237,8 +244,8 @@ def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:f
 
     # amplitude limits
     log_amp_guess = np.log10(amp_guess)
-    log_amp_n_lims = [0.5 * log_amp_guess, log_amp_guess]
-    log_amp_b_lims = [0, 0.5 * log_amp_guess]
+    log_amp_n_lims = [0.3 * log_amp_guess, log_amp_guess]
+    log_amp_b_lims = [0, 0.3 * log_amp_guess]
 
     # define log likelihood and prior transform functions
     def logl_stacked(u:tuple) -> float:
@@ -293,18 +300,23 @@ def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:f
     # plot corner plot
     plots.CornerPlot(results=res, mode='stacked')
 
-    # TODO: would need to think about how best to handle this, as fwhm and other values for this would likely be useful. 
-    """
+
     # use samples_equal to get fluxes under gaussians, and fwhm 
     fluxes_n, fwhms_n = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
+    fluxes_b, fwhms_b = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
 
     for s, samp in enumerate(samples_equal):
-        fluxes_n[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
-        fwhms_n[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[1] 
+        fluxes_n[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[2])
+        fwhms_n[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[2] 
+        fluxes_b[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[1]), sig=samp[3])
+        fwhms_b[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[3] 
 
     # generate distributions in these parameters
-    genkeys = ['flux', 'fwhm']
-    flux_fwhm = [fluxes_n, fwhms_n]
+    genkeys = ['flux_n', 'fwhm_n', 'flux_b', 'fwhm_b']
+    flux_fwhm = [fluxes_n, fwhms_n, fluxes_b, fwhms_b]
+    for key, array in zip(genkeys, flux_fwhm):
+        params[key] = utils.ExtractParamValues(array, weights=None)
+    """
     for gp, genparam in enumerate(genkeys):
         extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genkeys[gp]] = extracted_values

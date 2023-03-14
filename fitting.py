@@ -152,104 +152,111 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
     if fit_type == 'single':
 
         # general info
-        fit_params['type'] = fit_type
-        fit_params['success'] = params['success']
+        fit_params['type']        = fit_type
+        fit_params['success']     = params['success']
         if params['success']:
             fit_params['comment'] = 'Single Gaussian Fit'
         else:
             fit_params['comment'] = 'Failed fit'
         # data
-        fit_params['z'] = params['z'][0]
-        fit_params['z_err'] = max(params['z'][1], params['z'][2])
-        fit_params['log_amp'] = params['amp'][0]
-        fit_params['sig'] = params['sig'][0]
-        fit_params['sig_err'] = max(params['sig'][1], params['sig'][2])
-        fit_params['fwhm'] = params['fwhm'][0]
-        fit_params['flux'] = params['flux'][0]
-        fit_params['flux_err'] = max(params['flux'][1], params['flux'][2])
-        fit_params['fwhm'] = params['fwhm'][0]
-        fit_params['fwhm_err'] = max(params['fwhm'][1], params['fwhm'][2])
+        fit_params['z']           = params['z'][0]
+        fit_params['z_err']       = max(params['z'][1], params['z'][2])
+        fit_params['log_amp']     = params['amp'][0]
+        fit_params['sig']         = params['sig'][0]
+        fit_params['sig_err']     = max(params['sig'][1], params['sig'][2])
+        fit_params['fwhm']        = params['fwhm'][0]
+        fit_params['flux']        = params['flux'][0]
+        fit_params['flux_err']    = max(params['flux'][1], params['flux'][2])
+        fit_params['fwhm']        = params['fwhm'][0]
+        fit_params['fwhm_err']    = max(params['fwhm'][1], params['fwhm'][2])
+        fit_params['snr']          = fit_params['flux'] / fit_params['flux_err']
 
     elif fit_type == 'double':
 
         # general info
-        fit_params['type'] = fit_type
-        fit_params['success'] = params['success']
+        fit_params['type']          = fit_type
+        fit_params['success']       = params['success']
         if params['success']:
-            fit_params['comment'] = 'Double Gaussian Fit'
+            fit_params['comment']   = 'Double Gaussian Fit'
         else:
-            fit_params['comment'] = 'Failed fit'
-        fit_params['line'] = profit.options['line_name']
+            fit_params['comment']   = 'Failed fit'
+        fit_params['line']          = profit.options['line_name']
         # data
-        fit_params['z'] = params['z'][0]
-        fit_params['z_err'] = max(params['z'][1], params['z'][2])
-        fit_params['low_log_amp'] = params['amp1'][0]
-        fit_params['low_sig'] = params['sig'][0]
-        fit_params['low_flux'] = params['flux_1'][0]
-        fit_params['low_flux_err'] = max(
-            params['flux_1'][1], params['flux_1'][2])
-        fit_params['high_log_amp'] = params['amp2'][0]
-        fit_params['high_sig'] = params['sig'][0]
-        fit_params['high_flux'] = params['flux_2'][0]
-        fit_params['high_flux_err'] = max(
-            params['flux_2'][1], params['flux_2'][2])
-        fit_params['sig_err'] = max(params['sig'][1], params['sig'][2])
-        fit_params['fwhm'] = params['fwhm'][0]
-        fit_params['fwhm_err'] = max(params['fwhm'][1], params['fwhm'][2])        
+        fit_params['z']             = params['z'][0]
+        fit_params['z_err']         = max(params['z'][1], params['z'][2])
+        fit_params['low_log_amp']   = params['amp1'][0]
+        fit_params['low_sig']       = params['sig'][0]
+        fit_params['low_flux']      = params['flux_1'][0]
+        fit_params['low_flux_err']  = max(params['flux_1'][1], params['flux_1'][2])
+        fit_params['high_log_amp']  = params['amp2'][0]
+        fit_params['high_sig']      = params['sig'][0]
+        fit_params['high_flux']     = params['flux_2'][0]
+        fit_params['high_flux_err'] = max(params['flux_2'][1], params['flux_2'][2])
+        fit_params['sig_err']       = max(params['sig'][1], params['sig'][2])
+        fit_params['fwhm']          = params['fwhm'][0]
+        fit_params['fwhm_err']      = max(params['fwhm'][1], params['fwhm'][2])        
+        fit_params['snr']           = (fit_params['low_flux'] + fit_params['high_flux']) / \
+                                      (fit_params['low_flux_err'] + fit_params['high_flux_err'])
 
     elif fit_type == 'lorentzian':
 
         # general info
-        fit_params['type'] = fit_type
-        fit_params['success'] = params['success']
+        fit_params['type']        = fit_type
+        fit_params['success']     = params['success']
         if params['success']:
             fit_params['comment'] = 'Lorentzian Fit'
         else:
             fit_params['comment'] = 'Failed fit'
-        fit_params['line'] = profit.options['line_name']
+        fit_params['line']        = profit.options['line_name']
         # data
-        fit_params['z'] = params['z'][0]
-        fit_params['z_err'] = max(params['z'][1], params['z'][2])
-        fit_params['amp'] = params['amp'][0]
-        fit_params['gamma'] = params['gamma'][0]
-        fit_params['flux'] = params['flux'][0]
-        fit_params['flux_err'] = max(params['flux'][1], params['flux'][2])
-        fit_params['fwhm'] = params['fwhm'][0]
-        fit_params['fwhm_err'] = max(params['fwhm'][1], params['fwhm'][2])
+        fit_params['z']           = params['z'][0]
+        fit_params['z_err']       = max(params['z'][1], params['z'][2])
+        fit_params['amp']         = params['amp'][0]
+        fit_params['gamma']       = params['gamma'][0]
+        fit_params['flux']        = params['flux'][0]
+        fit_params['flux_err']    = max(params['flux'][1], params['flux'][2])
+        fit_params['fwhm']        = params['fwhm'][0]
+        fit_params['fwhm_err']    = max(params['fwhm'][1], params['fwhm'][2])
+        fit_params['snr']         = fit_params['flux'] / fit_params['flux_err']
 
     elif fit_type == 'stacked':
 
         # general info
-        fit_params['type'] = fit_type
-        fit_params['success'] = params['success']
+        fit_params['type']        = fit_type
+        fit_params['success']     = params['success']
         if params['success']:
             fit_params['comment'] = 'Stacked Gaussian Fit'
         else:
             fit_params['comment'] = 'Failed fit'
-        fit_params['line'] = profit.options['line_name']
+        fit_params['line']        = profit.options['line_name']
         # data
-        fit_params['z'] = params['z'][0]
-        fit_params['z_err'] = max(params['z'][1], params['z'][2])
-        fit_params['amp_n'] = params['amp_n'][0]
-        fit_params['amp_b'] = params['amp_b'][0]
-        fit_params['fwhm_n'] = utils.Vel_To_Sigma(params['vel_n'][0])
-        fit_params['fwhm_b'] = utils.Vel_To_Sigma(params['vel_b'][0])
+        fit_params['z']           = params['z'][0]
+        fit_params['z_err']       = max(params['z'][1], params['z'][2])
+        fit_params['amp_n']       = params['amp_n'][0]
+        fit_params['amp_b']       = params['amp_b'][0]
+        fit_params['fwhm_n']      = utils.Vel_To_Sigma(params['vel_n'][0])
+        fit_params['fwhm_b']      = utils.Vel_To_Sigma(params['vel_b'][0])
+        fit_params['flux_n']      = params['flux_1'][0]
+        fit_params['flux_n_err']  = max(params['flux_1'][1], params['flux_1'][2])
+        fit_params['flux_b']      = params['flux_2'][0]
+        fit_params['flux_b_err']  = max(params['flux_2'][1], params['flux_2'][2])
 
     elif fit_type == 'SKIP':
         # general info
-        fit_params['type'] = fit_type
-        fit_params['success'] = False
-        fit_params['comment'] = 'Skipped'
+        fit_params['type']     = fit_type
+        fit_params['success']  = False
+        fit_params['comment']  = 'Skipped'
         # data
-        fit_params['z'] = -999
-        fit_params['z_err'] = -999
-        fit_params['log_amp'] = -999
-        fit_params['sig'] = -999
-        fit_params['fwhm'] = -999
-        fit_params['flux'] = -999
+        fit_params['z']        = -999
+        fit_params['z_err']    = -999
+        fit_params['log_amp']  = -999
+        fit_params['sig']      = -999
+        fit_params['fwhm']     = -999
+        fit_params['flux']     = -999
         fit_params['flux_err'] = -999
-        fit_params['fwhm'] = -999
+        fit_params['fwhm']     = -999
         fit_params['fwhm_err'] = -999
+        fit_params['snr']      = -999
 
     # save pickle file
     if len(profit.options['rslt_dir']) < 1:
