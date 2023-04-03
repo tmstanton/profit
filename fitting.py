@@ -6,6 +6,7 @@ from profit import utils, manual, auto, plots
 from typing import Callable as func
 import sys
 import astropy.modeling as apm
+from uncertainties import ufloat, umath
 
 # -=-=-=- Fitting methods for different Lines -=-=-=-
 
@@ -26,7 +27,7 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
 
     # calculate approximate location of the line
     approx_wl = np.mean(profit.options['line_wl']) * (1. + redshift)
-    profit.options['redshift'] = redshift
+    profit.options['redshift'] = float(redshift)
 
     # mask out all but relevant region
     mask = (wavelengths >= approx_wl - 75.) & (wavelengths <= approx_wl + 75.)
@@ -113,6 +114,10 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
             plots.InitialPlot(wl_fit, flux_fit, errs_fit, approx_wl, fit_type)
             profit.options['open'] = True
 
+        if mode == 'auto':
+            print('-> [profit]: Automated codes not fully implemented.')
+            sys.exit()
+
         if fit_type == 'single':
             cen = profit.options['line_wl'][0]
             if mode == 'manual':
@@ -194,9 +199,14 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
         fit_params['high_flux_err'] = max(params['flux_2'][1], params['flux_2'][2])
         fit_params['sig_err']       = max(params['sig'][1], params['sig'][2])
         fit_params['fwhm']          = params['fwhm'][0]
-        fit_params['fwhm_err']      = max(params['fwhm'][1], params['fwhm'][2])        
-        fit_params['snr']           = (fit_params['low_flux'] + fit_params['high_flux']) / \
-                                      (fit_params['low_flux_err'] + fit_params['high_flux_err'])
+        fit_params['fwhm_err']      = max(params['fwhm'][1], params['fwhm'][2])
+
+        # handle combination
+        left = ufloat(fit_params['high_flux'], fit_params['low_flux_err'])
+        right = ufloat(fit_params['flow_flux'], fit_params['high_flux_err'])
+        fit_params['flux']        = (left + right).n
+        fit_params['flux_err']    = (left + right).s
+        fit_params['snr']         = fit_params['flux'] / fit_params['flux_err']   
 
     elif fit_type == 'lorentzian':
 
@@ -234,12 +244,23 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
         fit_params['z_err']       = max(params['z'][1], params['z'][2])
         fit_params['amp_n']       = params['amp_n'][0]
         fit_params['amp_b']       = params['amp_b'][0]
-        fit_params['fwhm_n']      = utils.Vel_To_Sigma(params['vel_n'][0])
-        fit_params['fwhm_b']      = utils.Vel_To_Sigma(params['vel_b'][0])
-        fit_params['flux_n']      = params['flux_1'][0]
-        fit_params['flux_n_err']  = max(params['flux_1'][1], params['flux_1'][2])
-        fit_params['flux_b']      = params['flux_2'][0]
-        fit_params['flux_b_err']  = max(params['flux_2'][1], params['flux_2'][2])
+        fit_params['sig_n']       = params['sig_n'][0]
+        fit_params['sig_b']       = params['sig_b'][0]
+        fit_params['fwhm_n']      = params['fwhm_n'][0]
+        fit_params['fwhm_n_err']  = max(params['fwhm_n'][1], params['fwhm_n'][2])
+        fit_params['fwhm_b']      = params['fwhm_b'][0]
+        fit_params['fwhm_b_err']  = max(params['fwhm_b'][1], params['fwhm_b'][2])
+        fit_params['flux_n']      = params['flux_n'][0]
+        fit_params['flux_n_err']  = max(params['flux_n'][1], params['flux_b'][2])
+        fit_params['flux_b']      = params['flux_b'][0]
+        fit_params['flux_b_err']  = max(params['flux_b'][1], params['flux_b'][2])
+        
+        # handle combination
+        narrow = ufloat(fit_params['flux_n'], fit_params['flux_n_err'])
+        broad = ufloat(fit_params['flux_b'], fit_params['flux_b_err'])
+        fit_params['flux']        = (narrow + broad).n
+        fit_params['flux_err']    = (narrow + broad).s
+        fit_params['snr']         = fit_params['flux'] / fit_params['flux_err']
 
     elif fit_type == 'SKIP':
         # general info

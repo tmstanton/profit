@@ -11,7 +11,8 @@ from dynesty.utils import quantile as _quantile
 from dynesty import utils as dyfunc
 from typing import Tuple as tpl
 import sys
-
+from multiprocessing import Pool
+from dynesty import plotting as dyplot
 
 # -=-=-=- Fitting Methods -=-=-=-
 
@@ -162,8 +163,8 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
 def LorentzianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
 
     # take in parameter guesses (visual)
-    amp_guess = float(input('Amplitude Guess: '))
-    gamma_guess = float(input('FWHM Guess: '))
+    amp_guess = utils.UserInput('Amplitude') 
+    gamma_guess = utils.UserInput('FWHM')
 
     if profit.options['open']: utils.ClosePlot()
 
@@ -231,57 +232,69 @@ def LorentzianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=
     return utils.ValidatePlot(params)
 
 def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
-    
-    # take in parameter guesses (visual) (for narrow peak? and maybe width for wide peak? (e.g. max to set upper limit?))
-    amp_guess = float(input('Amplitude Guess: '))
-    #sig_guess = float(input('Width Guess: '))
 
-    if profit.options['open']: utils.ClosePlot()
+    def GaussianStack(x:np.ndarray, namp:float, bamp:float, nsig:float, bsig:float, xc:float) -> np.ndarray:
+        narrow = Gaussian(x, namp, nsig, xc)
+        broad  = Gaussian(x, bamp, bsig, xc)
+        return broad + narrow
 
-    # convert to velocity and set velocity limit
-    vel_n_lims = [0, profit.options['vel_barrier']]
-    vel_b_lims = [profit.options['vel_barrier'], 5 * profit.options['vel_barrier']]
+    def Gaussian(x:np.ndarray, amp:float, sig:float, xc:float) -> np.ndarray:
+        return amp * np.exp(-np.power(x-xc, 2) / (2 * np.power(sig, 2)))
 
-    # amplitude limits
-    log_amp_guess = np.log10(amp_guess)
-    log_amp_n_lims = [0.3 * log_amp_guess, log_amp_guess]
-    log_amp_b_lims = [0, 0.3 * log_amp_guess]
+    def InvertFWHM(fwhm:float) -> float:
+        return fwhm / (2. * np.sqrt(2 * np.log(2.)))
 
-    # define log likelihood and prior transform functions
-    def logl_stacked(u:tuple) -> float:
+    def Sigma(vel:float, cwl:float, z:float) -> float:
+        fwhm = (cwl * (1. + z)) * vel / 3e5
+        return InvertFWHM(fwhm)
+
+    # define log likelihood function
+    def logL(u:tuple) -> float:
         
-        # extract parameters
-        log_amp_n, log_amp_b, vel_n, vel_b, rs = u
-        sig_n = utils.Vel_To_Sigma(vel_n)
-        sig_b = utils.Vel_To_Sigma(vel_b)
-        
-        # determine log likelihood
-        if min(sig_n, sig_b) <= 0:
+        # unpack parameters
+        namp, bamp, nvel, bvel, z = u
+        # convert vels to sigma
+        nsig = Sigma(nvel, cwl, z)
+        bsig = Sigma(bvel, cwl, z)
+
+        # make model flux
+        if min(nsig, bsig) <= 0:
             return -np.inf
-        model = utils.StackedGaussian(x=wl, xc=cwl*(1+rs), amp1=10**log_amp_n, 
-                                      amp2=10**log_amp_b, sig1=sig_n, sig2=sig_b)
+        model = GaussianStack(wl, namp, bamp, nsig, bsig, cwl * (1. + z))
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
-    def ptform_stacked(p:tuple) -> tuple: 
+    def unpack(lims:list, par:float) -> object:
+        return lims[0] + (par * (lims[1] - lims[0]))
 
-        # unpack prior parameters
-        plog_amp_n, plog_amp_b, pvel_n, pvel_b, pz = p
-        # use stats.norm to define the parameter estimates around the guesses
-        log_amp_n = log_amp_n_lims[0] + plog_amp_n * (log_amp_n_lims[0] - log_amp_n_lims[-1])
-        log_amp_b = log_amp_b_lims[0] + plog_amp_b * (log_amp_b_lims[0] - log_amp_b_lims[-1])
+    # define prior transform function
+    def ptform(p:tuple) -> float:
+        
+        # unpack parameters
+        pnamp, pbamp, pnvel, pbvel, pz = p
 
-        # generate limits? 
-        vel_n = vel_n_lims[0] + pvel_n * (vel_n_lims[0] - vel_n_lims[-1])
-        vel_b = vel_b_lims[0] + pvel_b * (vel_b_lims[0] - vel_b_lims[-1])
+        # determine ptform
+        red = unpack(redshift_lims, pz)
+        nvel = unpack(narrow_vel_lims, pnvel)
+        bvel = unpack(broad_vel_lims,  pbvel)
+        namp = unpack(narrow_amp_lims, pnamp)
+        bamp = unpack(broad_amp_lims,  pbamp)
 
-        # redshift
-        red = stats.uniform.ppf(pz, loc=z-zerr, scale=z+zerr)
+        return namp, bamp, nvel, bvel, red
+    
+    # run dynesty fitting
+    amp_guess = utils.UserInput('Amplitude')
+    broad_amp_lims  = [0, 0.5 * amp_guess]
+    narrow_amp_lims = [0.5 * amp_guess, 2.5 * amp_guess]
+    narrow_vel_lims  = [profit.options['vel_barrier']/4, 1.75 * profit.options['vel_barrier']] 
+    broad_vel_lims = [profit.options['vel_barrier'], 5*profit.options['vel_barrier']]
+    redshift_lims = [z - 0.05, z + 0.05]
 
-        return log_amp_n, log_amp_b, vel_n, vel_b, red 
+    # close plot
+    if profit.options['open']: utils.ClosePlot()
 
-    # run sampling
-    sampler = dynesty.NestedSampler(loglikelihood=logl_stacked, prior_transform=ptform_stacked,
-                                    ndim=5)
+    # run fitting
+    sampler = dynesty.NestedSampler(loglikelihood=logL, prior_transform=ptform,
+                                    ndim=5) #, pool=Pool(), queue_size=5)
     sampler.run_nested(print_progress=profit.options['verbose'])
 
     # extract results 
@@ -289,39 +302,47 @@ def StackedGaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:f
     samples, weights = res['samples'], np.exp(res.logwt - res.logz[-1])
     samples_equal = dyfunc.resample_equal(samples, weights)
 
+    # log amplitude samples
+    for amp in range(2):
+        samples.T[amp]       = np.log10(samples.T[amp])
+        samples_equal.T[amp] = np.log10(samples_equal.T[amp])
+
     # add data to dictionary
-    keys = ['amp_n', 'amp_b', 'sig_n', 'sig_b', 'z']
+    keys = ['amp_n', 'amp_b', 'vel_n', 'vel_b', 'z']
     params = {}
+    graph_params = []
     for p, par in enumerate(samples.T):
         params[keys[p]] = utils.ExtractParamValues(par, weights=weights)
+        graph_params.append(params[keys[p]][0])
+        print(keys[p], utils.ExtractParamValues(par, weights=weights))
+
+    # generate samples in terms of sig
+    sig_n_samples = Sigma(samples.T[2], cwl, samples.T[4])
+    sig_b_samples = Sigma(samples.T[3], cwl, samples.T[4])
+    params['sig_b'] = utils.ExtractParamValues(sig_b_samples, weights=weights)
+    params['sig_n'] = utils.ExtractParamValues(sig_n_samples, weights=weights)
 
     # plot best fit model
     plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='stacked')
     # plot corner plot
     plots.CornerPlot(results=res, mode='stacked')
 
-
-    # use samples_equal to get fluxes under gaussians, and fwhm 
-    fluxes_n, fwhms_n = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
-    fluxes_b, fwhms_b = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
-
+    # work out fluxes
+    flux_n, flux_b = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
+    fwhm_n, fwhm_b = np.empty(samples_equal.shape[0]), np.empty(samples_equal.shape[0])
     for s, samp in enumerate(samples_equal):
-        fluxes_n[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[2])
-        fwhms_n[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[2] 
-        fluxes_b[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[1]), sig=samp[3])
-        fwhms_b[s]  = 2. * np.sqrt(2. * np.log(2.)) * samp[3] 
+            flux_n[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=Sigma(samp[2], cwl, samp[-1]))
+            flux_b[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[1]), sig=Sigma(samp[3], cwl, samp[-1]))
+            fwhm_n[s] = 2. * np.sqrt(2. * np.log(2.)) * Sigma(samp[2], cwl, samp[-1])
+            fwhm_b[s] = 2. * np.sqrt(2. * np.log(2.)) * Sigma(samp[3], cwl, samp[-1])
+
 
     # generate distributions in these parameters
-    genkeys = ['flux_n', 'fwhm_n', 'flux_b', 'fwhm_b']
-    flux_fwhm = [fluxes_n, fwhms_n, fluxes_b, fwhms_b]
+    genkeys = ['flux_n', 'flux_b', 'fwhm_n', 'fwhm_b']
+    flux_fwhm = [flux_n, flux_b, fwhm_n, fwhm_b]
     for key, array in zip(genkeys, flux_fwhm):
         params[key] = utils.ExtractParamValues(array, weights=None)
-    """
-    for gp, genparam in enumerate(genkeys):
-        extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
-        params[genkeys[gp]] = extracted_values
-    """
-    # check to see if happy
+
     return utils.ValidatePlot(params)
 
 def TwoSigmaLimit(wl:list, flux:list, err:list, cwl:float, z:float) -> tpl[dict, bool]:

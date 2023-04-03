@@ -140,6 +140,10 @@ def Sigma_To_Vel(sigma:float) -> float:
     fwhm = FWHM(sigma)
     return 3e5 * fwhm / np.mean(profit.options['line_wl'])
 
+def Sigma_From_Vel(vel:float) -> float:
+    fwhm = (np.mean(profit.options['line_wl']) * (1. + profit.options['redshift'])) * vel / 3e5
+    return InvertFWHM(fwhm)    
+
 def Velocity_z(sigma:float) -> float:
     fwhm = FWHM(sigma)
     return 3e5 * fwhm / (np.mean(profit.options['line_wl']) * (1. + profit.options['redshift']))
@@ -149,6 +153,10 @@ def Velocity_z_FWHM(fwhm:float) -> float:
 
 def Vel_To_Sigma(vel:float) -> float:
     fwhm = np.mean(profit.options['line_wl']) * vel / 3e5
+    return InvertFWHM(fwhm)
+
+def Stack_Sigma_Conversion(vel:float, cwl:float, z:float) -> float:
+    fwhm = (cwl * (1. + z)) * vel / 3e5
     return InvertFWHM(fwhm)
 
 def ExtractParamValues(par:object, weights:object=None) -> tuple:
@@ -165,8 +173,10 @@ def ExtractUnweightedParams(par:list) -> tpl[float, float, float]:
 def Lorentzian(x:list, amp:float, gamma:float, xc:float) -> list:
     return (amp/np.pi) * (0.5 * gamma) / ( np.power(x-xc, 2) + np.power(0.5*gamma, 2)) 
 
-def StackedGaussian(x:object, xc:float, amp1:float, amp2:float, sig1:float, sig2:float) -> list:
-    return amp1 * np.exp(-np.power(x-xc, 2) / (2 * np.power(sig1, 2))) + amp2 * np.exp(-np.power(x-xc, 2) / (2 * np.power(sig2, 2)))
+def GaussianStack(x:np.ndarray, namp:float, bamp:float, nsig:float, bsig:float, xc:float) -> np.ndarray:
+    narrow = Gaussian(x, namp, nsig, xc)
+    broad  = Gaussian(x, bamp, bsig, xc)
+    return broad + narrow
 
 def Gaussian(x:object, amp:float, xc:float, sig:float) -> list:
     return amp * np.exp(-np.power(x-xc, 2) / (2 * np.power(sig, 2)))

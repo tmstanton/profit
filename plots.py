@@ -54,6 +54,14 @@ def InitialPlot(wl_fit:list, flux_fit:list, errs_fit:list, approx_wl:float, fit_
             print(f'Central Wavelength: {ap_fit2.mean.value:.2f} Å  \nWidth: {ap_fit2.stddev.value/2:.2f}')    
 
     elif fit_type == 'stacked':
+        g_init = apm.models.Gaussian1D(np.max(flux_fit), mean=approx_wl, stddev=8.)
+        fit_g = apm.fitting.LevMarLSQFitter()
+        ap_fit = fit_g(g_init, wl_fit, flux_fit)
+        ax.plot(wl_apg, ap_fit(wl_apg), c='green', lw=.5, label='Astropy Guess')
+        if verbose:
+            print(f'\n-> [profit]: Astropy Initial Guess Fit: \nAmplitude: {ap_fit.amplitude.value:.2e}')
+            print(f'Central Wavelength: {ap_fit.mean.value:.2f} Å  \nWidth: {ap_fit.stddev.value:.2f}')
+        """
         gn_init = apm.models.Gaussian1D(np.max(flux_fit), mean=approx_wl, stddev=utils.Vel_To_Sigma(250))
         gb_init = apm.models.Gaussian1D(0.25 * np.max(flux_fit), mean=approx_wl, stddev=utils.Vel_To_Sigma(750))
         fit_g = apm.fitting.LevMarLSQFitter()
@@ -65,7 +73,8 @@ def InitialPlot(wl_fit:list, flux_fit:list, errs_fit:list, approx_wl:float, fit_
             print(f'\n-> [profit]: Astropy Initial Guess Fit: \nMax Amplitude: {ap_n_fit.amplitude.value:.2e}')
             print(f'Central Wavelength: {ap_n_fit.mean.value:.2f} Å  \nNarrow Width: {ap_n_fit.stddev.value:.2f}')
             print(f'Central Wavelength: {ap_b_fit.mean.value:.2f} Å  \nBroad Width: {ap_b_fit.stddev.value:.2f}')
-
+        """
+            
     elif fit_type == 'lorentzian':
         l_init = apm.models.Lorentz1D(np.max(flux_fit), x_0 = approx_wl, fwhm = 20.)
         fit_l = apm.fitting.LevMarLSQFitter()
@@ -97,7 +106,7 @@ def CornerPlot(results:object, mode:str) -> None:
     elif mode == 'lorentzian':
         labels = ['amp', 'gamma', 'z']
     elif mode == 'stacked':
-        labels = ['amp1', 'amp2', 'vel_n', 'vel_b', 'z']
+        labels = ['amp_b', 'amp_n', 'sig_b', 'sig_n', 'z']
     else:
         print('-> [profit]: Incorrect plotting mode used in CornerPlot. Exiting...')
         sys.exit()
@@ -107,7 +116,7 @@ def CornerPlot(results:object, mode:str) -> None:
                                   show_titles=True)
     plt.show()
     if profit.options['save_plots']:
-        plt.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_corner_{mode[0]}.png')
+        cfig.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_corner_{mode[0]}.png')
     plt.close()
 
 def BestFitPlot(wl:object, fluxes:object, errors:object, params:dict, cen:object, mode:str) -> None:
@@ -201,22 +210,23 @@ def BestFitPlot(wl:object, fluxes:object, errors:object, params:dict, cen:object
         ax.axvline(c1 * (1. + params['z'][0]), ls=':', c='grey', lw=.5)
 
         # plot narrow
-        ax.plot(wl, utils.Gaussian(x=wl, amp=10**params['amp_n'][0], 
-                                   xc=c1 * (1. + params['z'][0]), sig=utils.Vel_To_Sigma(params['vel_n'][0])),
-                                   c='royalblue', lw=1., ls='-', label='narrow')
+        narrow = utils.Gaussian(x=gaussx, amp=10**params['amp_n'][0], 
+                                   xc=c1 * (1. + params['z'][0]), sig=params['sig_n'][0])
+        ax.plot(gaussx, narrow, c='royalblue', lw=1., ls='-', label='narrow')
 
         # plot broad
-        ax.plot(wl, utils.Gaussian(x=wl, amp=10**params['amp_b'][0], 
-                                   xc=c1 * (1. + params['z'][0]), sig=utils.Vel_To_Sigma(params['vel_b'][0])),
-                                   c='skyblue', lw=1., ls='-', label='broad')
+        broad = utils.Gaussian(x=gaussx, amp=10**params['amp_b'][0], 
+                                   xc=c1 * (1. + params['z'][0]), sig=params['sig_b'][0])
+        ax.plot(gaussx, broad, c='skyblue', lw=1., ls='-', label='broad')
 
         # plot combination
-        ax.plot(wl, utils.StackedGaussian(x=wl, amp1=10**params['amp_n'][0], amp2=10**params['amp_b'][0],
-                                          sig1=utils.Vel_To_Sigma(params['vel_n'][0]), sig2=utils.Vel_To_Sigma(params['vel_b'][0]),
-                                          xc=c1), c='green', lw=1.5, ls='-', label='combined')
+        #utils.GaussianStack(x=gaussx, namp=10**params['amp_n'][0], bamp=10**params['amp_b'][0],
+                                          #nsig=params['sig_n'][0], bsig=params['sig_b'][0],
+                                          #xc=c1 * (1. + params['z'][0]))
+        ax.plot(gaussx, (narrow + broad), c='green', lw=1.5, ls='-', label='combined')
 
         # output results
-        strparams = [10**params['amp_n'][0], 10**params['amp_b'][0], params['z'][0], utils.Vel_To_Sigma(params['vel_n'][0]), utils.Vel_To_Sigma(params['vel_b'][0])]
+        strparams = [10**params['amp_n'][0], 10**params['amp_b'][0], params['z'][0], params['sig_n'][0], params['sig_b'][0]]
         print(f'-> [profit]: Best Fit Parameters:\n -> Narrow Amp: {strparams[0]:.4e}\n -> Broad Amp: {strparams[1]:.4e}')
         print(f'-> Redshift: {strparams[2]:.4f}\n -> Narrow Sigma: {strparams[3]:.4f}\n -> Broad Sigma: {strparams[4]:.4f}')
 
