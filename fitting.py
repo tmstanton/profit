@@ -203,7 +203,7 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
 
         # handle combination
         left = ufloat(fit_params['high_flux'], fit_params['low_flux_err'])
-        right = ufloat(fit_params['flow_flux'], fit_params['high_flux_err'])
+        right = ufloat(fit_params['low_flux'], fit_params['high_flux_err'])
         fit_params['flux']        = (left + right).n
         fit_params['flux_err']    = (left + right).s
         fit_params['snr']         = fit_params['flux'] / fit_params['flux_err']   
@@ -245,7 +245,13 @@ def Fit(name:str, specpath:str, outpath:str, redshift:float, zerr:float=0.05, mo
         fit_params['amp_n']       = params['amp_n'][0]
         fit_params['amp_b']       = params['amp_b'][0]
         fit_params['sig_n']       = params['sig_n'][0]
+        fit_params['sig_n_err']   = max(params['sig_n'][1], params['sig_n'][2])
         fit_params['sig_b']       = params['sig_b'][0]
+        fit_params['sig_b_err']   = max(params['sig_b'][1], params['sig_b'][2])
+        fit_params['vel_n']       = params['vel_n'][0]
+        fit_params['vel_n_err']   = max(params['vel_n'][1], params['vel_n'][2])
+        fit_params['vel_b']       = params['vel_b'][0]
+        fit_params['vel_b_err']   = max(params['vel_b'][1], params['vel_b'][2])
         fit_params['fwhm_n']      = params['fwhm_n'][0]
         fit_params['fwhm_n_err']  = max(params['fwhm_n'][1], params['fwhm_n'][2])
         fit_params['fwhm_b']      = params['fwhm_b'][0]

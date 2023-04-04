@@ -13,7 +13,7 @@ def set_fit_options(options:dict) -> None:
 
     # verbose
     options['verbose'] = True
-    options['save_plots'] = False
+    options['save_plots'] = True
     options['display_auto_plots'] = True
 
     # generate line data [adapt to later use lots of lines]

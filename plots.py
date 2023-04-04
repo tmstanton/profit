@@ -114,15 +114,16 @@ def CornerPlot(results:object, mode:str) -> None:
                                   color='black', 
                                   labels=labels,
                                   show_titles=True)
-    plt.show()
+    #plt.show()
     if profit.options['save_plots']:
-        cfig.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_corner_{mode[0]}.png')
+        plt.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_corner_{mode[0]}.png',
+                    dpi=cfig.dpi)
     plt.close()
 
 def BestFitPlot(wl:object, fluxes:object, errors:object, params:dict, cen:object, mode:str) -> None:
     
     # general plot set up
-    fig, ax = plt.subplots(figsize=(8,6))
+    windowfig, ax = plt.subplots(figsize=(8,6))
     ax.axhline(0., ls='-', lw=.5, color='royalblue')
     ax.set_title(profit.options['line_name'])
     ax.set_xlabel('Wavelength λ [Å]')
@@ -254,9 +255,10 @@ def BestFitPlot(wl:object, fluxes:object, errors:object, params:dict, cen:object
     else:
         factor = 1
     #ax.set_ylim(factor * 1.1 * np.min(fluxes), 1.5 * np.max(fluxes))
-    plt.show()
     if profit.options['save_plots']:
-        plt.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_window_{mode[0]}.png')
+        plt.savefig(f'{profit.options["plot_dir"]}/{profit.options["line_path"]}_window_{mode[0]}.png',
+                    dpi=windowfig.dpi)
+    plt.show()
     plt.close()   
 
 def ContinuumPlot(wl_fit:list, flux_fit:list, errs_fit:list, approx_wl:float, fit_type:str, p:list) -> bool:

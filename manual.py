@@ -48,7 +48,7 @@ def DoubleGaussianFit(wl:list, flux:list, errs:list, wl1:float, wl2:float, z:flo
         # generate prior distributions
         log_amp1 = stats.norm.ppf(plog_amp1, loc=np.log10(a1_guess), scale=0.3)
         log_amp2 = stats.norm.ppf(plog_amp2, loc=np.log10(a2_guess), scale=0.3)
-        sig = stats.norm.ppf(psig, loc=sig_guess, scale=2*sig_guess)
+        sig = stats.norm.ppf(psig, loc=sig_guess, scale=4) # changed from 2 * sig guess
         #red = stats.norm.ppf(pz, loc=z, scale=0.1)
         red = stats.uniform.ppf(pz, loc=z-zerr, scale=2*zerr)
 
@@ -108,6 +108,8 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
         # determine log likelihood
         if sig <= 0:
             return -np.inf
+        if sig >= 5 * sig_guess:
+            return -np.inf
         model = utils.Gaussian(x=wl, amp=10**log_amp, xc=cwl*(1. + rs), sig=sig)
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
@@ -117,7 +119,7 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
         plog_amp, psig, pz = p
         # use stats.norm to define the parameter estimates around the guesses
         log_amp = stats.norm.ppf(plog_amp, loc=np.log10(amp_guess), scale=0.05)
-        sig = stats.norm.ppf(psig, loc=sig_guess, scale=2*sig_guess)
+        sig = stats.norm.ppf(psig, loc=sig_guess, scale=5)
         red = stats.uniform.ppf(pz, loc=z-zerr, scale=2*zerr)
 
         return log_amp, sig, red 
