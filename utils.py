@@ -11,10 +11,7 @@ from matplotlib import cm, colors
 # -=-=-=- Runtime Methods -=-=-=-
 
 def SetLine(line:str) -> None:
-    """ Sets the line that profit should fit for according to input """
-    profit.options['line_name'] = line
-    profit.options['line_wl']   = profit.options[line][:-1] # allows for double peaks
-    profit.options['line_path'] = profit.options[line][-1]
+    profit.Line = profit.lines[line]
 
 def SavePlots(yn:bool) -> None:
     """ Gives the option to save plots """
@@ -56,31 +53,38 @@ def FastPP(name:str, path:str) -> tpl[object, object, object]:
 
     return wavelengths, fluxes, errors
 
+def mosfire(fill:str, file:float) -> tpl[np.ndarray, np.ndarray, np.ndarray]:
+    
+    # open file
+    spectrum = np.genfromtxt(file, names=True)
+    wavelengths = spectrum['wl']
+    flam = spectrum['flam']
+    flam_err = spectrum['flam_err']
 
-def kmos1D(name:str, path:str) -> tpl[object, object, object]:
+    return wavelengths, flam, flam_err
 
-    # get name
-    #name = path.split('/')[-1].split('.')[0]
+def excels(name:str, path:str) -> tpl[np.ndarray, np.ndarray, np.ndarray]:
+    
+    # open file
+    spectrum = np.genfromtxt(path).T
+    wavelengths = spectrum[0]
+    flam = spectrum[1]
+    flam_err = spectrum[2] 
 
-    # get fluxes
-    fhdu = fits.open(f'{path}/data/{name}.fits')
-    fluxes = fhdu[0].data
+    return wavelengths, flam, flam_err
+
+def vandels(file:str, path:str) -> tpl[np.ndarray, np.ndarray, np.ndarray]:
+
+    fhdu = fits.open(f'{path}/{file}')
     hdr = fhdu[0].header
 
-    # get errors
-    ehdu = fits.open(f'{path}/error/{name}.fits')
-    errors = ehdu[0].data
+    fluxes = fhdu['PRIMARY'].data
+    errors = fhdu['NOISE'].data
+    wavelengths  = np.arange(hdr['CRVAL1'], hdr['CRVAL1'] + hdr['CDELT1'] * fluxes.size, hdr['CDELT1'])
 
-    # generate wavelength axis
-    wavelengths = None
-    wl0 = hdr['CRVAL1']
-    dwl = hdr['CDELT1']
-    naxis = fluxes.shape[0]
-    wavelengths = np.arange(wl0, wl0 + (dwl*naxis), dwl) * 1e4
+    return wavelengths, fluxes, errors
 
-    return wavelengths, fluxes, (errors)
-
-def kmos1D_n(name:str, path:str) -> tpl[object, object, object]:
+def kmos1D(name:str, path:str) -> tpl[object, object, object]:
 
     # get fluxes
     fhdu = fits.open(f'{path}/{name}.fits')
@@ -96,6 +100,12 @@ def kmos1D_n(name:str, path:str) -> tpl[object, object, object]:
     naxis = fluxes.shape[0]
     wavelengths = np.arange(wl0, wl0 + (dwl*naxis), dwl) * 1e4
 
+    return wavelengths, fluxes, errors
+
+def spec(id:str, spec:tuple):
+    wavelengths = spec[0]
+    fluxes = spec[1]
+    errors = spec[2]
     return wavelengths, fluxes, errors
 
 def smacs1d(name:str, path:str) -> tpl[object, object, object]:
@@ -138,21 +148,21 @@ def InvertFWHM(fwhm:float) -> float:
 
 def Sigma_To_Vel(sigma:float) -> float:
     fwhm = FWHM(sigma)
-    return 3e5 * fwhm / np.mean(profit.options['line_wl'])
+    return 3e5 * fwhm / np.mean(profit.Line.wls)
 
 def Sigma_From_Vel(vel:float) -> float:
-    fwhm = (np.mean(profit.options['line_wl']) * (1. + profit.options['redshift'])) * vel / 3e5
+    fwhm = (np.mean(profit.Line.wls) * (1. + profit.options['redshift'])) * vel / 3e5
     return InvertFWHM(fwhm)    
 
 def Velocity_z(sigma:float) -> float:
     fwhm = FWHM(sigma)
-    return 3e5 * fwhm / (np.mean(profit.options['line_wl']) * (1. + profit.options['redshift']))
+    return 3e5 * fwhm / (np.mean(profit.Line.wls) * (1. + profit.options['redshift']))
 
 def Velocity_z_FWHM(fwhm:float) -> float:
-    return 3e5 * fwhm / (np.mean(profit.options['line_wl']) * (1. + profit.options['redshift']))
+    return 3e5 * fwhm / (np.mean(profit.Line.wls) * (1. + profit.options['redshift']))
 
 def Vel_To_Sigma(vel:float) -> float:
-    fwhm = np.mean(profit.options['line_wl']) * vel / 3e5
+    fwhm = np.mean(profit.Line.wls) * vel / 3e5
     return InvertFWHM(fwhm)
 
 def Stack_Sigma_Conversion(vel:float, cwl:float, z:float) -> float:
@@ -174,8 +184,8 @@ def Lorentzian(x:list, amp:float, gamma:float, xc:float) -> list:
     return (amp/np.pi) * (0.5 * gamma) / ( np.power(x-xc, 2) + np.power(0.5*gamma, 2)) 
 
 def GaussianStack(x:np.ndarray, namp:float, bamp:float, nsig:float, bsig:float, xc:float) -> np.ndarray:
-    narrow = Gaussian(x, namp, nsig, xc)
-    broad  = Gaussian(x, bamp, bsig, xc)
+    narrow = Gaussian(x=x, amp=namp, sig=nsig, xc=xc)
+    broad  = Gaussian(x=x, amp=bamp, sig=bsig, xc=xc)
     return broad + narrow
 
 def Gaussian(x:object, amp:float, xc:float, sig:float) -> list:
@@ -183,6 +193,10 @@ def Gaussian(x:object, amp:float, xc:float, sig:float) -> list:
 
 def DoubleGaussian(x:object, amp1:float, xc1:float, amp2:float, xc2:float, sig:float) -> list:
     return amp1 * np.exp(-np.power(x-xc1, 2) / (2 * np.power(sig, 2))) + amp2 * np.exp(-np.power(x-xc2, 2) / (2 * np.power(sig, 2)))
+
+def TripleGaussian(x:object, amp1:float, xc1:float, amp2:float, xc2:float, amp3:float, xc3:float, sig:float) -> list:
+    return amp1 * np.exp(-np.power(x-xc1, 2) / (2 * np.power(sig, 2))) + amp2 * np.exp(-np.power(x-xc2, 2) / (2 * np.power(sig, 2))) \
+            + amp3 * np.exp(-np.power(x-xc3, 2) / (2 * np.power(sig, 2)))
 
 # -=-=-=- Plot Handling Methods -=-=-=-
 
@@ -202,6 +216,7 @@ def ValidatePlot(params):
 
     if valid == 'y':
         params['success'] = True
+        if profit.options['open']: profit.utils.ClosePlot()
         return params, True
     elif valid == 'n':
         print('Setting Default Null Value')
@@ -212,9 +227,11 @@ def ValidatePlot(params):
         params['sig'] = [-999, -999, -999]
         params['flux'] = [-999, -999, -999]
         params['fwhm'] = [-999, -999, -999]
+        if profit.options['open']: profit.utils.ClosePlot()
         return params, True
     elif valid == 'r':
         params['success'] = True
+        if profit.options['open']: profit.utils.ClosePlot()
         return params, False
     else:
         print('Invalid Input... Exiting')
