@@ -8,7 +8,7 @@ class Spectral_Line(object):
 
     def __init__(self:object, id:str, type:str, wavelengths:list, title:str, components:list, emission:bool) -> None:
         
-        self.id         = id
+        self.id     = id
         self.title      = title
         self.type       = type
         self.wls        = wavelengths
@@ -26,14 +26,26 @@ def Generate_Features() -> dict:
     linepath = os.path.abspath(profit.__file__).strip('__init__.py') + 'lines'
     lines = {_file.strip('.pkl'): utils.PklLoad(f'{linepath}/{_file}') for _file in os.listdir(linepath)}
 
+    speclines = {}
+    for _, _line in lines.items():
+        if _.startswith('aschen'):
+            key = 'p' + _
+            id  = 'p' + _line['id']
+        elif _.startswith('yman'):
+            key = 'l' + _
+            id  = 'l' + _line['id']
+        else:
+            key = _
+            id  = _line['id']
+        speclines[key] =  Spectral_Line(id=id, 
+                                        type=_line['type'], 
+                                        wavelengths=_line['wavelengths'], 
+                                        title=_line['title'], 
+                                        components=_line['components'],
+                                        emission=_line['emission'])
+
     # return dictionary of objects
-    return {_: Spectral_Line(id=_line['id'], 
-                             type=_line['type'], 
-                             wavelengths=_line['wavelengths'], 
-                             title=_line['title'], 
-                             components=_line['components'],
-                             emission=_line['emission']) 
-                             for _, _line in lines.items()}
+    return speclines
         
 def Add_Line(id:str, wavelengths:list, title:str, type:str, components:list, emission:bool=True) -> None:
     """ Adds a feature to the lines directory """

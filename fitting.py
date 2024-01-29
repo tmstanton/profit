@@ -13,13 +13,6 @@ from uncertainties import ufloat, umath
 def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0.05, 
         mode:str='manual', readmethod:func = utils.kmos1D, check_continuum:bool=True) -> None:
     
-    valid_types = {
-        '1':'single',
-        '2':'double',
-        '3':'stacked',
-        '4':'lorentzian',
-        '5': 'SKIP'
-    }
     if mode == 'auto':
         fit_type = profit.options['fit_mode']
 
@@ -28,9 +21,14 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     if len(wavelengths) == len(fluxes) + 1: # TODO: figure out why, temporary fix
         wavelengths = wavelengths[:-1]
 
-    if name == 'XL110239':
+    if name in ['XL121003']:#, 'XL110239']:
         fluxes *= -1.0
 
+    flux_mask = fluxes > -1e-19
+    fluxes = fluxes[flux_mask]
+    wavelengths = wavelengths[flux_mask]
+    errors = errors[flux_mask]
+    
     # calculate approximate location of the line    
     approx_wl = np.mean(profit.Line.wls) * (1. + redshift)
 
@@ -87,45 +85,59 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     run_continuum = True
     run_fit = True
     continuum = True
-    continuum_normalised = False
 
-    profit.plots.InitialPlot(wl_fit, flux_fit, errs_fit, approx_wl, '', verbose=False)
-    profit.options['open'] = True
+    # handle case of empty data
+    empty = False if len(wl_fit) > 0 else True
 
-    # check for skip first
-    fit = 'x' if input('\t-> Enter "x" to skip line profile: ').lower() == 'y' else 'n'
-    if fit == 'x':
+    # select fit type if not empty 
+    if not empty:
+
+        profit.plots.InitialPlot(wl_fit, flux_fit, errs_fit, approx_wl, '', verbose=False)
+        profit.options['open'] = True
+
+        # check for skip first
+        fit = 'x' if input('\t-> Enter "x" to skip line profile: ').lower() == 'x' else 'n'
+        if fit == 'x':
+            accepted = True
+            run_continuum = False
+            run_fit = False
+            fit_type = 'SKIP'
+
+        if run_fit:
+            # check for emission or absorption line
+            if profit.Line.emission: 
+
+                # handle different line types
+                if profit.Line.type == 'singlet':
+                    
+                    print('-> [profit]: Fitting single gaussian profile')
+
+                    # handle potential stacked gaussian case
+                    fit_type = 'single'
+                    #fit_type  = 'stacked' if input('\t-> Enter "y" to fit for stacked gaussian profile: ').lower() == 'y' else 'single'
+
+                elif profit.Line.type == 'doublet':
+
+                    print('-> [profit]: Fitting single gaussian profile')
+                    fit_type  = 'double'
+
+                elif profit.Line.type == 'triplet':
+
+                    print('-> [profit]: Fitting single gaussian profile')
+                    fit_type  = 'triple'
+
+                else: raise ValueError('-> [profit]: Unknown Line type presented - check pkl files...')
+            
+            else: raise ValueError('-> [profit]: ABSORPTION LINES TO BE ADDED IN A FUTURE UPDATE, EXITING')
+            
+        if profit.options['open']: profit.utils.ClosePlot()
+
+    else:
+        print('[profit | ERROR]: no spectral data - skipping...')
         accepted = True
         run_continuum = False
         run_fit = False
         fit_type = 'SKIP'
-
-    # check for emission or absorption line
-    if profit.Line.emission : 
-
-        # handle different line types
-        if profit.Line.type == 'singlet':
-            
-            print('-> [profit]: Fitting single gaussian profile')
-
-            # handle potential stacked gaussian case
-            fit_type  = 'stacked' if input('\t-> Enter "y" to fit for stacked gaussian profile: ').lower() == 'y' else 'single'
-
-        elif profit.Line.type == 'doublet':
-
-            print('-> [profit]: Fitting single gaussian profile')
-            fit_type  = 'double'
-
-        elif profit.Line.type == 'triplet':
-
-            print('-> [profit]: Fitting single gaussian profile')
-            fit_type  = 'triple'
-
-        else: raise ValueError('-> [profit]: Unknown Line type presented - check pkl files...')
-    
-    else: raise ValueError('-> [profit]: ABSORPTION LINES TO BE ADDED IN A FUTURE UPDATE, EXITING')
-        
-    if profit.options['open']: profit.utils.ClosePlot()
 
     # give continuum normalisation option
     while run_fit:
@@ -240,15 +252,15 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
 
     # create final dictionary
     fit_params = {}
-    singlet_params = {}
 
-    if continuum_normalised:
-        fit_params['normalisation_params'] = cont_fit_params
-        print(fit_params)
+    #if continuum_normalised:
+    #    fit_params['normalisation_params'] = cont_fit_params
+    #    print(fit_params)
 
     if fit_type == 'single':
 
         # general info
+        singlet_params = {}
         singlet_params['type']        = fit_type
         singlet_params['success']     = params['success']
         if params['success']:
@@ -276,6 +288,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
         for _n, n in enumerate(np.arange(profit.Line.nprofiles) + 1):
 
             # general info
+            singlet_params = {}
             singlet_params['type']          = fit_type
             singlet_params['success']       = params['success']
             if params['success']:
@@ -304,6 +317,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
         for _n, n in enumerate(np.arange(profit.Line.nprofiles) + 1):
 
             # general info
+            singlet_params = {}
             singlet_params['type']          = fit_type
             singlet_params['success']       = params['success']
             if params['success']:
@@ -330,6 +344,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     elif fit_type == 'lorentzian':
 
         # general info
+        singlet_params = {}
         singlet_params['type']        = fit_type
         singlet_params['success']     = params['success']
         if params['success']:
@@ -356,6 +371,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     elif fit_type == 'stacked':
 
         # general info
+        singlet_params = {}
         singlet_params['type']        = fit_type
         singlet_params['success']     = params['success']
         if params['success']:
@@ -399,6 +415,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     
     elif fit_type == 'limit':
         # general info
+        singlet_params = {}
         singlet_params['type']        = fit_type
         singlet_params['success']     = True
         singlet_params['comment']     = 'successful limit'
@@ -424,6 +441,7 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
         for _n, n in enumerate(np.arange(profit.Line.nprofiles) + 1):
 
             # general info
+            singlet_params = {}
             singlet_params['type']     = fit_type
             singlet_params['success']  = False
             singlet_params['comment']  = 'Skipped'
@@ -449,6 +467,6 @@ def Fit(name:str, specpath:str, outpath:str="", redshift:float=0.0, zerr:float=0
     else:
         print(f'-> [profit]: saving fit data to {profit.options["rslt_dir"]}\n')
         for component in profit.Line.components:
-            profit.utils.PklSave(filepath=f'{profit.options["rslt_dir"]}/{name}.{component}.pkl', results=fit_params[component])
+            profit.utils.PklSave(filepath=f'{profit.options["rslt_dir"]}/{component}.pkl', results=fit_params[component])
 
     return None

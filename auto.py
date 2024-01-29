@@ -1,6 +1,6 @@
 # relevant imports
 import profit
-from profit import utils, plots
+from profit import plots
 import numpy as np
 from scipy import stats
 from scipy.stats import linregress
@@ -15,16 +15,18 @@ import sys
 # -=-=-=- methods -=-=-=-
 
 def DoubleGaussianFit(wl:object, flux:object, errs:object, wl1:float, wl2:float, z:float, zerr=0.1) -> tpl[dict, bool]:
-    pass
+    print('-> [profit | ERROR]: WIP, not valid.')
+    sys.exit()
 
 def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.05) -> None: 
-    
+    print('-> [profit | ERROR]: WIP, not valid.')
+    sys.exit()    
     # select maxmimum flux within the window
     amp_lims = [0, np.log10(np.max(flux))]
     sig_lims = [0, 20]
     rst_lims = [z-zerr, z+zerr]
 
-    if profit.options['open']: utils.ClosePlot()
+    if profit.options['open']: profit.utils.ClosePlot()
 
     # define log likelihood and prior transform functions
     def logl_single(u):
@@ -34,7 +36,7 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
         # determine log likelihood
         if sig <= 0:
             return -np.inf
-        model = utils.Gaussian(x=wl, amp=10**log_amp, xc=cwl*(1. + rs), sig=sig)
+        model = profit.utils.Gaussian(x=wl, amp=10**log_amp, xc=cwl*(1. + rs), sig=sig)
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
     def ptform_single(p): 
@@ -62,24 +64,24 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
     keys = ['amp', 'sig', 'z']
     params = {}
     for p, par in enumerate(samples.T):
-        params[keys[p]] = utils.ExtractParamValues(par, weights=weights)
+        params[keys[p]] = profit.utils.ExtractParamValues(par, weights=weights)
 
     # plot best fit model
-    plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='single')
+    profit.plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='single')
     # plot corner plot
-    plots.CornerPlot(results=res, mode='single')
+    profit.plots.CornerPlot(results=res, mode='single')
 
     # use samples_equal to get fluxes under gaussians, and fwhm 
     fluxes, fwhms = np.empty(samples_equal.size), np.empty(samples_equal.size)
 
     for s, samp in enumerate(samples_equal):
-        fluxes[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
-        fwhms[s]  = utils.FWHM(samp[1]) 
+        fluxes[s] = profit.utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
+        fwhms[s]  = profit.utils.FWHM(samp[1]) 
 
     # generate distributions in these parameters
     genkeys = ['flux', 'fwhm']
     for gp, genparam in enumerate(genkeys):
-        extracted_values = utils.ExtractParamValues(genparam, weights=None)
+        extracted_values = profit.utils.ExtractParamValues(genparam, weights=None)
         params[genkeys[gp]] = extracted_values
 
     flux_vals = _quantile(fluxes, [0.16, 0.50, 0.84], weights=None)
@@ -90,16 +92,17 @@ def GaussianFit(wl:list, flux:list, errs:list, cwl:float, z:float, zerr:float=0.
     params['fwhm'] = (fwhm_vals[1], fwhm_vals[1]-fwhm_vals[0], fwhm_vals[2]-fwhm_vals[1])
 
     # check to see if happy
-    return utils.ValidatePlot(params)
+    return profit.utils.ValidatePlot(params)
 
 def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
-
+    print('-> [profit | ERROR]: WIP, not valid.')
+    sys.exit()
     # take in parameter guesses (visual)
     amp_lims   = [0, np.log10(np.max(flux))]
     gamma_lims = [0, 30] 
     rst_lims   = [z-zerr, z+zerr]
 
-    if profit.options['open']: utils.ClosePlot()
+    if profit.options['open']: profit.utils.ClosePlot()
 
     # define log likelihood and prior transform functions
     def logl_lor(u):
@@ -109,7 +112,7 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
         # determine log likelihood
         if gma <= 0:
             return -np.inf
-        model = utils.Lorentzian(x=wl, amp=10**log_amp, gamma=gma, xc = cwl*(1. + rs))
+        model = profit.utils.Lorentzian(x=wl, amp=10**log_amp, gamma=gma, xc = cwl*(1. + rs))
         return -0.5 * np.sum((np.power((model[errs>0] - flux[errs>0]) / errs[errs>0], 2) + 2 * np.log(errs[errs>0]) ))
 
     def ptform_lor(p): 
@@ -136,32 +139,33 @@ def LorentzianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:
     keys = ['amp', 'gamma', 'z']
     params = {}
     for p, par in enumerate(samples.T):
-        params[keys[p]] = utils.ExtractParamValues(par, weights=weights)
+        params[keys[p]] = profit.utils.ExtractParamValues(par, weights=weights)
 
     # plot best fit model
-    plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='lorentzian')
+    profit.plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='lorentzian')
     # plot corner plot
-    plots.CornerPlot(results=res, mode='lorentzian')
+    profit.plots.CornerPlot(results=res, mode='lorentzian')
 
     # use samples_equal to get fluxes under gaussians, and fwhm TODO: verify these work?
     fluxes, fwhms = np.empty(samples_equal.size), np.empty(samples_equal.size)
 
     for s, samp in enumerate(samples_equal):
-        fluxes[s] = utils.FluxUnderLorentzian(amp=np.power(10,samp[0]), sig=samp[1])
+        fluxes[s] = profit.utils.FluxUnderLorentzian(amp=np.power(10,samp[0]), sig=samp[1])
         fwhms[s]  = 2 * samp[1] # FWHM is 2 * gamma
 
     # generate distributions in these parameters
     genkeys = ['flux', 'fwhm']
     flux_fwhm = [fluxes, fwhms]
     for gp, genparam in enumerate(genkeys):
-        extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
+        extracted_values = profit.utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genkeys[gp]] = extracted_values
 
     # check to see if happy
-    return utils.ValidatePlot(params)
+    return profit.utils.ValidatePlot(params)
 
 def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, zerr:float=0.05) -> tpl[dict, bool]:
-
+    print('-> [profit | ERROR]: WIP, not valid.')
+    sys.exit()
     # automated guesses [Motivated by Anshu et al 2023]
     n_amp_lims = [0.5 * np.log10(np.max(flux)), np.log10(np.max(flux))]
     b_amp_lims = [0., 0.5 * np.log10(np.max(flux))]
@@ -169,20 +173,20 @@ def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, 
     vel_b_lims = [profit.options['vel_barrier'], 5 * profit.options['vel_barrier']]
     rst_lims   = [z-zerr, z+zerr]
 
-    if profit.options['open']: utils.ClosePlot()
+    if profit.options['open']: profit.utils.ClosePlot()
 
     # define log likelihood and prior transform functions
     def logl_stacked(u:tuple) -> tuple:
         
         # extract parameters
         log_amp_n, log_amp_b, vel_n, vel_b, rs = u
-        sig_n = utils.Vel_To_Sigma(vel_n)
-        sig_b = utils.Vel_To_Sigma(vel_b)
+        sig_n = profit.utils.Vel_To_Sigma(vel_n)
+        sig_b = profit.utils.Vel_To_Sigma(vel_b)
 
         # determine log likelihood
         if min(sig_n, sig_b) <= 0:
             return -np.inf
-        model = utils.StackedGaussian(x=wl, xc=cwl*(1+rs), amp1=10**log_amp_n, 
+        model = profit.utils.StackedGaussian(x=wl, xc=cwl*(1+rs), amp1=10**log_amp_n, 
                                       amp2=10**log_amp_b, sig1=sig_n, sig2=sig_b)
         return -0.5 * np.sum((np.power((model - flux) / errs, 2) + 2 * np.log(errs) ))
 
@@ -218,13 +222,13 @@ def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, 
     keys = ['amp_n', 'amp_b', 'vel_n', 'vel_b', 'z']
     params = {}
     for p, par in enumerate(samples.T):
-        params[keys[p]] = utils.ExtractParamValues(par, weights=weights)
+        params[keys[p]] = profit.utils.ExtractParamValues(par, weights=weights)
 
     if profit.options['display_auto_plots']:
         # plot best fit model
-        plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='stacked')
+        profit.plots.BestFitPlot(wl=wl, fluxes=flux, errors=errs, params=params, cen=(cwl), mode='stacked')
         # plot corner plot
-        plots.CornerPlot(results=res, mode='stacked')
+        profit.plots.CornerPlot(results=res, mode='stacked')
 
     # TODO: would need to think about how best to handle this, as fwhm and other values for this would likely be useful. 
     """
@@ -232,15 +236,15 @@ def StackedGaussianFit(wl:object, flux:object, errs:object, cwl:float, z:float, 
     fluxes_n, fwhms_n = np.empty(samples_equal.size), np.empty(samples_equal.size)
 
     for s, samp in enumerate(samples_equal):
-        fluxes_n[s] = utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
-        fwhms_n[s]  = utils.FWHM(samp[1]) 
+        fluxes_n[s] = profit.utils.FluxUnderGaussian(amp=np.power(10,samp[0]), sig=samp[1])
+        fwhms_n[s]  = profit.utils.FWHM(samp[1]) 
 
     # generate distributions in these parameters
     genkeys = ['flux', 'fwhm']
     flux_fwhm = [fluxes_n, fwhms_n]
     for gp, genparam in enumerate(genkeys):
-        extracted_values = utils.ExtractParamValues(flux_fwhm[gp], weights=None)
+        extracted_values = profit.utils.ExtractParamValues(flux_fwhm[gp], weights=None)
         params[genkeys[gp]] = extracted_values
     """
     # check to see if happy
-    return utils.ValidatePlot(params)
+    return profit.utils.ValidatePlot(params)

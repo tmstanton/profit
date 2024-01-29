@@ -26,8 +26,8 @@ def set_fit_options() -> None:
     options['vel_barrier'] = 200 # km s-1
 
     # window size
-    options['window_minus'] = 500.
-    options['window_plus']  = 500.
+    options['window_minus'] = 300.
+    options['window_plus']  = 300.
 
     # select relevant windows
     options['manual_windows'] = False
